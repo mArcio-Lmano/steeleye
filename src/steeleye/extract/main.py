@@ -3,13 +3,22 @@ import xml.etree.ElementTree as ET
 from requests.exceptions import HTTPError
 
 
-class XMLClient:
-    def __init__(self):
-        pass
+class Extract:
+    def __init__(self, url, **kwargs):
+        response = self._get(url, **kwargs)
+        if response.status_code != 200:
+            raise HTTPError(f"Status Code: {response.status_code}, URL: {url}")
+        download_link = self._parse_xml(response.text, 2, "download_link")
+        response = self._get(download_link, **kwargs)
+        if response.status_code != 200:
+            raise HTTPError(
+                f"Status Code: {response.status_code}, URL: {download_link}"
+            )
+        with open("temp/test.zip", "wb") as zip_file:
+            zip_file.write(response.content)
 
     def _get(self, url, **kwargs):
-        x = requests.get(url, kwargs)
-        return x
+        return requests.get(url, **kwargs)
 
     def _parse_xml(self, xml_response, link_indx, atrib):
         root = ET.fromstring(xml_response)
@@ -33,17 +42,8 @@ class XMLClient:
 
 
 def main():
-    xml_client = XMLClient()
-    response = xml_client._get(
-        "https://registers.esma.europa.eu/solr/esma_registers_firds_files/select?q=*&fq=publication_date:[2021-01-17T00:00:00Z+TO+2021-01-19T23:59:59Z]&wt=xml&indent=true&start=0&rows=100"
-    )
-    if response.status_code != 200:
-        raise HTTPError(f"Status Code: {response.status_code}")
-    download_link = xml_client._parse_xml(response.text, 2, "download_link")
-    print(download_link)
-    x = xml_client._get(download_link)
-    with open("temp/test.zip", "wb") as zip_file:
-        zip_file.write(x.content)
+    url = "https://registers.esma.europa.eu/solr/esma_registers_firds_files/select?q=*&fq=publication_date:[2021-01-17T00:00:00Z+TO+2021-01-19T23:59:59Z]&wt=xml&indent=true&start=0&rows=100"
+    Extract(url)
 
 
 if __name__ == "__main__":
