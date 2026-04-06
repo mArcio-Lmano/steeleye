@@ -1,4 +1,6 @@
 import requests
+from pathlib import Path
+import os
 import xml.etree.ElementTree as ET
 from requests.exceptions import HTTPError
 import logging
@@ -7,6 +9,9 @@ logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger("Extractor")
+
+BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
+TEMP_DIR = BASE_DIR / "temp"
 
 
 class Extract:
@@ -53,9 +58,12 @@ class Extract:
         logger.info("Successfully extracted download link.")
         return zip_link.text
 
-    def _save_to_disk(self, response):
+    def _save_to_disk(self, response, file_name="test"):
+        TEMP_DIR.mkdir(exist_ok=True)
+        file_path = TEMP_DIR / f"{file_name}.zip"
+
         logger.info("Saving file to %s", "temp/test.zip")
-        with open("temp/test.zip", "wb") as zip_file:
+        with open(file_path, "wb") as zip_file:
             zip_file.write(response.content)
 
     def _clean_disk(self):

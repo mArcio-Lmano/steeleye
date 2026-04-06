@@ -1,7 +1,9 @@
+import pathlib
 import pytest
 from unittest.mock import patch, MagicMock, mock_open
 from requests.exceptions import HTTPError
 from steeleye.extract import Extract
+from pathlib import Path
 
 
 def test_parse_xml_success():
@@ -26,17 +28,17 @@ def test_parse_xml_out_of_bounds():
         extractor._parse_xml(xml_data, 5, "any")
 
 
+@patch("steeleye.extract.main.TEMP_DIR")
 @patch("builtins.open", new_callable=mock_open)
-def test_save_to_disk(mock_file):
-    """Tests that the file is opened and written correctly."""
-    mock_response = MagicMock()
-    mock_response.content = b"fake_binary_data"
-
+def test_save_to_disk_dynamic_name(mock_file, mock_temp_dir):
+    mock_temp_dir.__truediv__.return_value = Path("/fake/path/test.zip")
     extractor = Extract("http://fake.com")
-    extractor._save_to_disk(mock_response)
+    mock_response = MagicMock(content=b"data")
 
-    mock_file.assert_called_once_with("temp/test.zip", "wb")
-    mock_file().write.assert_called_once_with(b"fake_binary_data")
+    extractor._save_to_disk(mock_response, file_name="test")
+
+    mock_file.assert_called_once_with(Path("/fake/path/test.zip"), "wb")
+    mock_file().write.assert_called_once_with(b"data")
 
 
 @patch.object(Extract, "_get")

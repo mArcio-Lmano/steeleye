@@ -1,6 +1,5 @@
-import os
 import pytest
-from steeleye.extract.main import Extract
+from steeleye.extract.main import Extract, TEMP_DIR
 
 
 @pytest.mark.integration
@@ -11,13 +10,16 @@ def test_extract_real_url():
         "&wt=xml&indent=true&start=0&rows=100"
     )
 
-    file_path = "temp/test.zip"
+    file_name = "test"
+    file_path = TEMP_DIR / f"{file_name}.zip"
 
-    if os.path.exists(file_path):
-        os.remove(file_path)
+    if file_path.exists():
+        file_path.unlink()
 
     extract_instance = Extract(url)
     extract_instance.run()
 
-    assert os.path.exists(file_path), "File was not created on disk"
-    assert os.path.getsize(file_path) > 0, "Downloaded file is empty"
+    assert file_path.exists(), f"File was not created at {file_path}"
+    assert file_path.stat().st_size > 0, "Downloaded file is empty"
+
+    file_path.unlink()
