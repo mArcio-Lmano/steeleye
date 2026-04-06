@@ -1,9 +1,9 @@
-import requests
-from pathlib import Path
-import os
-import xml.etree.ElementTree as ET
-from requests.exceptions import HTTPError
 import logging
+import xml.etree.ElementTree as ET
+from pathlib import Path
+
+import requests
+from requests.exceptions import HTTPError
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"

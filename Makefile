@@ -13,4 +13,4 @@ test-unit:
 test-int:
 	poetry run pytest -m "integration"
 
-check-all: format lint test-unit
+check-all: format lint test
