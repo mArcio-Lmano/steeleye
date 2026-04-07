@@ -1,2 +1,4 @@
 **.xml
 **.zip
+**cache
+__pycache__/
