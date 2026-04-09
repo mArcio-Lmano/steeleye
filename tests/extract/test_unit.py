@@ -1,4 +1,3 @@
-import pathlib
 import pytest
 from unittest.mock import patch, MagicMock, mock_open
 from requests.exceptions import HTTPError
