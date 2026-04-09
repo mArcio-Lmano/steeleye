@@ -1,8 +1,8 @@
+import logging
+import xml.etree.ElementTree as ET
+from pathlib import Path
 from zipfile import ZipFile
 
-import xml.etree.ElementTree as ET
-import logging
-from pathlib import Path
 import pandas as pd
 
 logging.basicConfig(
@@ -15,12 +15,34 @@ TEMP_DIR = BASE_DIR / "temp"
 
 
 class Transform:
+    """
+    Handles extraction, parsing, and transformation of ISO 20022 XML files.
+    """
+
     def __init__(
         self, ns: dict = {"schema": "urn:iso:std:iso:20022:tech:xsd:auth.036.001.02"}
     ) -> None:
+        """
+        Initialize the Transform class with XML namespaces.
+
+        Args:
+            ns (dict): XML namespaces for parsing. Defaults to ISO 20022 schema.
+        """
         self.ns = ns
 
     def _extract_zip(self, file_name) -> list[Path]:
+        """
+        Extracts all files from a ZIP archive into a temporary directory.
+
+        Args:
+            file_name (str): Name of the ZIP file to extract.
+
+        Returns:
+            list[Path]: List of extracted file paths.
+
+        Raises:
+            FileNotFoundError: If the ZIP file is not found.
+        """
         TEMP_DIR.mkdir(exist_ok=True)
         zip_path = TEMP_DIR / file_name
         try:
@@ -31,35 +53,19 @@ class Transform:
         except FileNotFoundError as e:
             raise FileNotFoundError(f"Failed to find zip: {e}")
 
-    def _check_tags(self, extracted_files: list[Path]) -> None:
-        for file in extracted_files:
-            count = 0
-            with open(file, "r") as xml:
-                root = ET.fromstring(xml.read())
-            for elem in root.iter():
-                count += 1
-                if count > 40:
-                    break
-
-    def _discover_records_type(self, extracted_files) -> list:
-        found_record_types = set()
-
-        for files_count, file in enumerate(extracted_files, 1):
-            try:
-                tree = ET.parse(file)
-                root = tree.getroot()
-            except Exception as e:
-                logger.error("Failed to parse %s: %s", file, e)
-                continue
-
-            for instr in root.findall(".//schema:FinInstrm", self.ns):
-                child = instr[0]
-                tag_name = child.tag.split("}")[-1]
-                found_record_types.add(tag_name)
-
-        return list(found_record_types)
-
     def _covert_to_df(self, extracted_files: list[Path]) -> pd.DataFrame:
+        """
+        Converts extracted XML files into a pandas DataFrame.
+
+        Args:
+            extracted_files (list[Path]): List of extracted XML file paths.
+
+        Returns:
+            pd.DataFrame: DataFrame containing parsed XML data.
+
+        Raises:
+            RuntimeError: If an XML file cannot be parsed.
+        """
         root = None
         rows = []
         files_count = 0
@@ -78,7 +84,6 @@ class Transform:
             try:
                 for instr in root.findall(".//schema:FinInstrm", self.ns):
                     record = next(child for child in instr)
-
                     if record is not None:
                         attributes = record.find("schema:FinInstrmGnlAttrbts", self.ns)
 
@@ -111,15 +116,34 @@ class Transform:
         return pd.DataFrame(rows)
 
     def _count_a(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Adds a column counting occurrences of 'a' in the 'FullNm' field.
+
+        Args:
+            df (pd.DataFrame): Input DataFrame.
+
+        Returns:
+            pd.DataFrame: DataFrame with an added 'a_count' column.
+        """
         df["a_count"] = df["FullNm"].fillna("").apply(lambda x: x.count("a"))
+        return df
+
+    def run(self) -> pd.DataFrame:
+        """
+        Runs the full transformation pipeline: extraction, parsing, and transformation.
+
+        Returns:
+            pd.DataFrame: Final DataFrame with extracted and processed data.
+        """
+        files = self._extract_zip("test.zip")
+        df = self._covert_to_df(files)
+        df = self._count_a(df)
         return df
 
 
 def main():
     transform = Transform()
-    files = transform._extract_zip("test.zip")
-    df = transform._covert_to_df(files)
-    df = transform._count_a(df)
+    df = transform.run()
     print(df.head(5))
 
 
